@@ -1,0 +1,94 @@
+// This is your Database Structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"      // 👈 FIXED: Set to sqlite
+  url      = env("DATABASE_URL")
+}
+
+// 1. USER: Stores Profile & Settings
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String   @unique
+  name      String
+  bio       String?
+  avatarUrl String?
+  
+  // Relations
+  cards       Card[]
+  communities CommunityMember[]
+  messages    Message[]
+  interests   UserInterest[]
+
+  createdAt DateTime @default(now())
+}
+
+// 2. CARDS: The main "Feed" items
+model Card {
+  id          String   @id @default(uuid())
+  title       String?  
+  description String
+  type        String   // "image", "video", "text"
+  mediaUrl    String?
+
+  // Stats (Cached for performance)
+  views    Int @default(0)
+  likes    Int @default(0)
+  
+  // Author
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+// 3. COMMUNITIES: Groups & Channels
+model Community {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  type        String   // "group" or "channel"
+  icon        String?  // Emoji or URL
+  
+  members     CommunityMember[]
+  
+  createdAt DateTime @default(now())
+}
+
+// Link Table: Who is in which community?
+model CommunityMember {
+  id          String    @id @default(uuid())
+  userId      String
+  communityId String
+  role        String    @default("member") // "admin", "member"
+
+  user        User      @relation(fields: [userId], references: [id])
+  community   Community @relation(fields: [communityId], references: [id])
+}
+
+// 4. USER INTERESTS (For Discovery Settings)
+model UserInterest {
+  id          String  @id @default(uuid())
+  topic       String  // "AI", "React", "Law"
+  isPrimary   Boolean @default(false)
+  isVisible   Boolean @default(true)
+  channelName String? // "Altech102"
+  
+  userId      String
+  user        User    @relation(fields: [userId], references: [id])
+}
+
+// 5. CHAT MESSAGES
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+
+  createdAt DateTime @default(now())
+}
